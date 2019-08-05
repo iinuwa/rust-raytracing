@@ -1,7 +1,10 @@
+mod vec3;
+
 use std::fs::File;
 use std::io;
 use std::io::prelude::*;
 use std::io::BufWriter;
+use vec3::{Color, Vec3};
 
 fn main() -> io::Result<()> {
     let x_px = 200;
@@ -19,17 +22,14 @@ fn main() -> io::Result<()> {
     // Body
     for j in (0..y_px).rev() {
         for i in 0..x_px {
-            let r = i as f32 / x_px as f32;
-            let g = j as f32 / y_px as f32;
-            let b = 0.2;
-            let ir = (255.99 * r) as u32;
-            let ig = (255.9 * g) as u32;
-            let ib = (255.9 * b) as u32;
-            output.push_str(&ir.to_string());
+            let color = Vec3(i / x_px, j / y_px, 0.2);
+            let pixel = color * 255.99;
+
+            output.push_str(&pixel.r().to_string());
             output.push_str(" ");
-            output.push_str(&ig.to_string());
+            output.push_str(&pixel.g().to_string());
             output.push_str(" ");
-            output.push_str(&ib.to_string());
+            output.push_str(&pixel.b().to_string());
             output.push_str("\n");
         }
     }
@@ -37,7 +37,7 @@ fn main() -> io::Result<()> {
     {
         let mut writer = BufWriter::new(f);
 
-        writer.write(&output.as_bytes())?;
+        writer.write_all(&output.as_bytes())?;
     }
 
     Ok(())

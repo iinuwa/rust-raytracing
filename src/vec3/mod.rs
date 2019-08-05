@@ -1,126 +1,163 @@
-use std::ops::{Add, AddAssign, Sub, SubAssign, Mul, MulAssign, Div, DivAssign, Neg};
+mod tests;
+use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
-struct Vector3 {
-    x: f32,
-    y: f32,
-    z: f32,
+/*
+pub trait Vec3<T> {
+    a: T,
+    b: T,
+    c: T,
+
+}
+*/
+pub struct Vec3<T>(pub T, pub T, pub T);
+pub trait Color {
+    fn r(&self) -> u8;
+    fn g(&self) -> u8;
+    fn b(&self) -> u8;
 }
 
-impl Add for Vector3 {
-    type Output = Vector3;
+pub trait Vector {
+    fn x(&self) -> f32;
+    fn y(&self) -> f32;
+    fn z(&self) -> f32;
+}
 
-    fn add(self, other: Vector3) -> Self::Output {
-        Vector3 {
-            x: self.x + other.x,
-            y: self.y + other.y,
-            z: self.z + other.z,
-        }
+pub trait Point {
+    fn x(&self) -> f32;
+    fn y(&self) -> f32;
+    fn z(&self) -> f32;
+}
+
+impl Color for Vec3<u8> {
+    fn r(&self) -> u8 {
+        self.0 as u8
+    }
+
+    fn g(&self) -> u8 {
+        self.1 as u8
+    }
+
+    fn b(&self) -> u8 {
+        self.2 as u8
+    }
+}
+impl Point for Vec3<f32> {
+    fn x(&self) -> f32 {
+        self.0
+    }
+
+    fn y(&self) -> f32 {
+        self.1
+    }
+
+    fn z(&self) -> f32 {
+        self.2
     }
 }
 
-impl AddAssign for Vector3 {
+impl<T> PartialEq for Vec3<T>
+where
+    T: PartialEq,
+{
+    fn eq(&self, other: &Vec3<T>) -> bool {
+        self.0 == other.0 && self.1 == other.1 && self.2 == other.2
+    }
+}
+impl<T: Add<Output = T>> Add for Vec3<T> {
+    type Output = Self;
+
+    fn add(self, other: Vec3<T>) -> Self::Output {
+        Self(self.0 + other.0, self.1 + other.1, self.2 + other.2)
+    }
+}
+
+impl<T: AddAssign> AddAssign for Vec3<T> {
     fn add_assign(&mut self, other: Self) {
-        *self = Self {
-            x: self.x + other.x,
-            y: self.y + other.y,
-            z: self.z + other.z,
-        }
+        self.0 += other.0;
+        self.1 += other.1;
+        self.2 += other.2;
     }
 }
 
-impl Sub for Vector3 {
-    type Output = Vector3;
+impl<T: Sub<Output = T>> Sub for Vec3<T> {
+    type Output = Self;
 
-    fn sub(self, other: Vector3) -> Self::Output {
-        Vector3 {
-            x: self.x - other.x,
-            y: self.y - other.y,
-            z: self.z - other.z,
-        }
+    fn sub(self, other: Self) -> Self::Output {
+        Self(self.0 - other.0, self.1 - other.1, self.2 - other.2)
     }
 }
 
-impl SubAssign for Vector3 {
+impl<T: SubAssign> SubAssign for Vec3<T> {
     fn sub_assign(&mut self, other: Self) {
-        *self = Self {
-            x: self.x - other.x,
-            y: self.y - other.y,
-            z: self.z - other.z,
-        }
+        self.0 -= other.0;
+        self.1 -= other.1;
+        self.2 -= other.2;
     }
 }
 
-impl Mul for Vector3 {
-    type Output = Vector3;
-    fn mul(self, other: Vector3) -> Self::Output {
-        Vector3 {
-            x: self.x * other.x,
-            y: self.y * other.y,
-            z: self.z * other.z,
-        }
+impl<T: Mul<Output = T>> Mul for Vec3<T> {
+    type Output = Self;
+    fn mul(self, other: Self) -> Self::Output {
+        Vec3(self.0 * other.0, self.1 * other.1, self.2 * other.2)
     }
 }
 
-impl MulAssign<Vector3> for Vector3 {
-    fn mul_assign(mut &self, rhs: Vector3) {
-        self.x *= rhs.x,
-        self.y *= rhs.y,
-        self.z *= rhs.z,
+impl Mul<f32> for Vec3<f32> {
+    type Output = Self;
+    fn mul(self, other: f32) -> Self::Output {
+        Self(self.0 * other, self.1 * other, self.2 * other)
     }
 }
 
-impl MulAssign<f32> for Vector3 {
-    fn mul_assign(&mut self, rhs: f32) {
-        self.x *= rhs;
-        self.y *= rhs;
-        self.z *= rhs;
+impl<T: MulAssign> MulAssign for Vec3<T> {
+    fn mul_assign(&mut self, other: Self) {
+        self.0 *= other.0;
+        self.1 *= other.1;
+        self.2 *= other.2;
     }
 }
 
-impl Div for Vector3 {
-    type Output = Vector3;
-    fn div(self, other: Vector3) -> Self::Output {
-        Vector3 {
-            x: self.x / other.x,
-            y: self.y / other.y,
-            z: self.z / other.z,
-        }
+impl MulAssign<f32> for Vec3<f32> {
+    fn mul_assign(&mut self, other: f32) {
+        self.0 *= other;
+        self.1 *= other;
+        self.2 *= other;
     }
 }
 
-impl DivAssign<Vector3> for Vector3 {
-    fn div_assign(mut &self, rhs: Vector3) {
-        self.x /= rhs.x,
-        self.y /= rhs.y,
-        self.z /= rhs.z,
+impl<T: Div<Output = T>> Div for Vec3<T> {
+    type Output = Self;
+    fn div(self, other: Self) -> Self::Output {
+        Vec3(self.0 / other.0, self.1 / other.1, self.2 / other.2)
     }
 }
 
-impl DivAssign<f32> for Vector3 {
-    fn div_assign(&mut self, rhs: f32) {
-        self.x /= rhs;
-        self.y /= rhs;
-        self.z /= rhs;
+impl Div<f32> for Vec3<f32> {
+    type Output = Self;
+    fn div(self, other: f32) -> Self::Output {
+        Vec3(self.0 / other, self.1 / other, self.2 / other)
     }
 }
 
-impl Neg for Vector3 {
-    type Output = Vector3;
+impl<T: DivAssign> DivAssign for Vec3<T> {
+    fn div_assign(&mut self, other: Self) {
+        self.0 /= other.0;
+        self.1 /= other.1;
+        self.2 /= other.2;
+    }
+}
+
+impl DivAssign<f32> for Vec3<f32> {
+    fn div_assign(&mut self, other: f32) {
+        self.0 /= other;
+        self.1 /= other;
+        self.2 /= other;
+    }
+}
+
+impl<T: Neg<Output = T>> Neg for Vec3<T> {
+    type Output = Self;
     fn neg(self) -> Self::Output {
-        Vector3 {
-            x: -self.x,
-            y: -self.y,
-            z: -self.z,
-    }
-}
-
-
-impl Vector3 {
-    pub fn square(self) -> Self {
-        Vector3 {
-            x: self.x * self.x,
-            y: self.y * self.y,
-            z: self.z * self.z,
-        }
+        Self(-self.0, -self.1, -self.2)
     }
 }
