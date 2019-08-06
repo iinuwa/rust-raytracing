@@ -16,19 +16,21 @@ pub trait Color {
     fn b(&self) -> u8;
 }
 
-pub trait Vector {
-    fn x(&self) -> f32;
-    fn y(&self) -> f32;
-    fn z(&self) -> f32;
-}
-
 pub trait Point {
     fn x(&self) -> f32;
     fn y(&self) -> f32;
     fn z(&self) -> f32;
 }
 
-impl Color for Vec3<u8> {
+pub trait Vector {
+    fn x(&self) -> f32;
+    fn y(&self) -> f32;
+    fn z(&self) -> f32;
+    
+    fn unit_vector(v: Vector) -> Vector;
+}
+
+impl  Color for Vec3<f32> {
     fn r(&self) -> u8 {
         self.0 as u8
     }
@@ -40,6 +42,23 @@ impl Color for Vec3<u8> {
     fn b(&self) -> u8 {
         self.2 as u8
     }
+}
+impl Vector for Vec3<f32> {
+    fn x(&self) -> f32 {
+        self.0
+    }
+
+    fn y(&self) -> f32 {
+        self.1
+    }
+
+    fn z(&self) -> f32 {
+        self.2
+    }
+    fn unit_vector(v: Vector) -> Self {
+        v / v.length()
+    }
+
 }
 impl Point for Vec3<f32> {
     fn x(&self) -> f32 {
