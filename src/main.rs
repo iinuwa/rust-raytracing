@@ -1,10 +1,12 @@
 mod vec3;
+mod ray;
 
 use std::fs::File;
 use std::io;
 use std::io::prelude::*;
 use std::io::BufWriter;
-use vec3::{Color, Vec3, Point};
+use vec3::{Color, Vec3, Vector};
+use ray::Ray;
 
 fn main() -> io::Result<()> {
     let x_px = 200;
@@ -23,8 +25,12 @@ fn main() -> io::Result<()> {
         for i in 0..x_px {
             let u = i as f32 / x_px as f32;
             let v = j as f32 / y_px as f32;
-            let color = Vec3(u, v, 0.2);
-            let my_ray(origin, (lower_left_corner + u*horizontal + v*vertical));
+            let direction = &lower_left_corner + &horizontal*u + &vertical*v;
+            let my_ray = Ray {
+                point: &origin,
+                vector: direction,
+            };
+            let color = linear_blend(&my_ray);
             let pixel = color * 255.99;
 
             output.push_str(&pixel.r().to_string());
@@ -54,7 +60,9 @@ fn header(output: &mut String, width: &usize, height: &usize) {
 
 }
 
-fn linear_blend(ray: &Ray) -> Vec3 {
-    let unit_direction = Vector::unit_vector(ray.direction());
+fn linear_blend(ray: &Ray<f32>) -> Vec3<f32> {
 
+    let unit_direction = &ray.direction().unit_vector();
+    let t = 0.5 * (unit_direction.y() + 1.0);
+    Vec3(1.0, 1.0, 1.0) * (1.0 - t)  + Vec3(0.5, 0.7, 1.0) * t
 }
