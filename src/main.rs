@@ -1,36 +1,57 @@
-mod vec3;
+mod camera;
+mod objects;
 mod ray;
+mod vec3;
 
+use camera::Camera;
+use objects::{HitRecord, Hittable, HittableList, Sphere};
+use rand::prelude::*;
+use ray::Ray;
+use std::f32;
 use std::fs::File;
 use std::io;
 use std::io::prelude::*;
 use std::io::BufWriter;
 use vec3::{Color, Vec3, Vector};
-use ray::Ray;
-use std::cmp::Ordering;
 
 fn main() -> io::Result<()> {
     let x_px = 200;
     let y_px = 100;
+    let antialias_factor = 100;
     let f = File::create("foo.ppm")?;
     let mut output = String::new();
-    let lower_left_corner = Vec3(-2.0, -1.0, -1.0);
-    let horizontal = Vec3(4.0, 0.0, 0.0);
-    let vertical = Vec3(0.0, 2.0, 0.0);
-    let origin = Vec3(0.0, 0.0, 0.0);
+
+    let camera = Camera::new();
+    let sphere1 = Sphere {
+        center: Vec3(0.0, 0.0, -1.0),
+        radius: 0.5,
+    };
+    let sphere2 = Sphere {
+        center: Vec3(0.0, -100.5, -1.0),
+        radius: 100.0,
+    };
+
+    let world = HittableList::new(vec![&sphere1, &sphere2]);
 
     //Header
     header(&mut output, &x_px, &y_px);
     // Body
+    let mut rng = rand::thread_rng();
     for j in (0..y_px).rev() {
         for i in 0..x_px {
-            let u = i as f32 / x_px as f32;
-            let v = j as f32 / y_px as f32;
-            let horizontal_vector = u * &horizontal;
-            let vertical_vector = v * &vertical;
-            let direction = &lower_left_corner + &horizontal_vector + vertical_vector;
-            let my_ray = Ray::new(&origin, &direction);
-            let color: Vec3 = calculate_color(&my_ray);
+            let mut color = Vec3(0.0, 0.0, 0.0);
+            for _ in 0..antialias_factor {
+                let u_jitter: f32 = rng.gen();
+                let v_jitter: f32 = rng.gen();
+                let u = (i as f32 + &u_jitter) / x_px as f32;
+                let v = (j as f32 + &v_jitter) / y_px as f32;
+                // let horizontal_vector = u * &horizontal;
+                // let vertical_vector = v * &vertical;
+                // let direction = &lower_left_corner + &horizontal_vector + vertical_vector;
+                let my_ray = camera.get_ray(u, v);
+                color += calculate_color(&my_ray, &world);
+            }
+            color /= antialias_factor as f32;
             let pixel = color * 255.99;
 
             output.push_str(&pixel.r().to_string());
@@ -57,47 +78,25 @@ fn header(output: &mut String, width: &usize, height: &usize) {
     output.push_str(" ");
     output.push_str(&height.to_string());
     output.push_str("\n255\n");
-
 }
 
-fn calculate_color(ray: &Ray) -> Vec3 {
-    let sphere = Sphere { 
-        center: Vec3(0.0, 0.0, -1.0),
-        radius: 0.5,
-    };
-
-    let shade_factor = hit_sphere(&sphere.center, sphere.radius, ray);
-    if shade_factor > 0.0 {
-        return shade(shade_factor, ray);
+fn calculate_color(ray: &Ray, world: &Hittable) -> Vec3 {
+    if let Some(hit_record) = world.hit(&ray, 0.0, f32::MAX) {
+        return shade(hit_record);
     }
     linear_blend(ray)
 }
 
 fn linear_blend(ray: &Ray) -> Vec3 {
-
     let unit_direction = &ray.direction().unit_vector();
     let t = 0.5 * (unit_direction.y() + 1.0);
-    Vec3(1.0, 1.0, 1.0) * (1.0 - t)  + Vec3(0.5, 0.7, 1.0) * t
+    Vec3(1.0, 1.0, 1.0) * (1.0 - t) + Vec3(0.5, 0.7, 1.0) * t
 }
 
-fn hit_sphere(center: &Vec3, radius: f32, ray: &Ray) -> f32 {
-    let origin_offset = ray.origin() - center;
-    let a = Vec3::dot(ray.direction(), ray.direction());
-    let b = 2.0 * Vec3::dot(&origin_offset, ray.direction());
-    let c = Vec3::dot(&origin_offset, &origin_offset) - radius * radius;
-    let discriminant = b * b - 4.0 * a * c;
-    match discriminant.partial_cmp(&0_f32).unwrap() {
-        Ordering::Less => -1.0,
-        Ordering::Greater => (-b - discriminant.sqrt()) / (2.0 * a),
-        Ordering::Equal => (-b - discriminant.sqrt()) / (2.0 * a),
-    }
-}
-
-fn shade(factor: f32, ray: &Ray) -> Vec3 { 
-    let surface_normal = (ray.point_at(factor) - Vec3(0.0, 0.0, -1.0)).unit_vector();
-    0.5 * Vec3(surface_normal.x() + 1.0, surface_normal.y() + 1.0, surface_normal.z() + 1.0)
-}
-struct Sphere {
-    center: Vec3,
-    radius: f32, 
+fn shade(hit_record: HitRecord) -> Vec3 {
+    0.5 * Vec3(
+        hit_record.normal.x() + 1.0,
+        hit_record.normal.y() + 1.0,
+        hit_record.normal.z() + 1.0,
+    )
 }

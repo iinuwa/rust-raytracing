@@ -19,7 +19,6 @@ impl Color for Vec3 {
     fn b(&self) -> u8 {
         self.2 as u8
     }
-
 }
 
 pub trait Coordinate<T> {
@@ -32,7 +31,7 @@ pub trait Vector<T> {
     fn x(&self) -> T;
     fn y(&self) -> T;
     fn z(&self) -> T;
-    
+
     fn length(&self) -> T;
     fn unit_vector(&self) -> Self;
     fn dot(v1: &Vec3, v2: &Vec3) -> f32;
@@ -71,8 +70,7 @@ impl Clone for Vec3 {
         Self(self.0, self.1, self.2)
     }
 }
-impl PartialEq for Vec3
-{
+impl PartialEq for Vec3 {
     fn eq(&self, other: &Vec3) -> bool {
         self.0 == other.0 && self.1 == other.1 && self.2 == other.2
     }
@@ -86,7 +84,6 @@ impl Add for Vec3 {
     }
 }
 
-
 /*
 impl Add for &Vec3 {
     type Output = Vec3;
@@ -97,7 +94,7 @@ impl Add for &Vec3 {
 }
 */
 
-impl <'a, 'b> Add<&'b Vec3> for &'a Vec3 {
+impl<'a, 'b> Add<&'b Vec3> for &'a Vec3 {
     type Output = Vec3;
 
     fn add(self, other: &'b Vec3) -> Vec3 {
@@ -121,6 +118,14 @@ impl Sub for Vec3 {
     }
 }
 
+impl Sub<&Vec3> for Vec3 {
+    type Output = Self;
+
+    fn sub(self, other: &Vec3) -> Self::Output {
+        Self(self.0 - other.0, self.1 - other.1, self.2 - other.2)
+    }
+}
+
 impl Sub for &Vec3 {
     type Output = Vec3;
 
@@ -128,7 +133,6 @@ impl Sub for &Vec3 {
         Vec3(self.0 - other.0, self.1 - other.1, self.2 - other.2)
     }
 }
-
 
 impl SubAssign for Vec3 {
     fn sub_assign(&mut self, other: Self) {
@@ -138,18 +142,18 @@ impl SubAssign for Vec3 {
     }
 }
 
-impl  Mul for Vec3 {
+impl Mul for Vec3 {
     type Output = Self;
     fn mul(self, other: Self) -> Self::Output {
         Vec3(self.0 * other.0, self.1 * other.1, self.2 * other.2)
     }
 }
 
-impl  Mul<f32> for Vec3 {
-type Output = Self;
-  fn mul(self, other: f32) -> Self::Output {
+impl Mul<f32> for Vec3 {
+    type Output = Self;
+    fn mul(self, other: f32) -> Self::Output {
         Vec3(self.0 * other, self.1 * other, self.2 * other)
-  }
+    }
 }
 
 impl Mul<&Vec3> for f32 {
