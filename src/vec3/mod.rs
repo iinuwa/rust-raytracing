@@ -35,6 +35,7 @@ pub trait Vector<T> {
     fn length(&self) -> T;
     fn unit_vector(&self) -> Self;
     fn dot(v1: &Vec3, v2: &Vec3) -> f32;
+    fn squared_length(&self) -> f32;
 }
 
 impl Vector<f32> for Vec3 {
@@ -62,6 +63,10 @@ impl Vector<f32> for Vec3 {
     fn dot(v1: &Vec3, v2: &Vec3) -> f32 {
         let v = v1 * v2;
         v.0 + v.1 + v.2
+    }
+
+    fn squared_length(&self) -> f32 {
+        Self::dot(&self, &self)
     }
 }
 
