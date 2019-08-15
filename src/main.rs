@@ -4,7 +4,7 @@ mod ray;
 mod vec3;
 
 use camera::Camera;
-use objects::{HitRecord, Hittable, HittableList, Sphere};
+use objects::{HitRecord, Hittable, HittableList, Sphere, Lambertian, Material, ScatterResult};
 use rand::prelude::*;
 use ray::Ray;
 use std::f32;
@@ -25,10 +25,12 @@ fn main() -> io::Result<()> {
     let sphere1 = Sphere {
         center: Vec3(0.0, 0.0, -1.0),
         radius: 0.5,
+        material: Lambertian::new(Vec3(0.0, 0.0, 0.0)),
     };
     let sphere2 = Sphere {
         center: Vec3(0.0, -100.5, -1.0),
         radius: 100.0,
+        material: Lambertian::new(Vec3(0.0, 0.0, 0.0)),
     };
 
     let world = HittableList::new(vec![&sphere1, &sphere2]);
@@ -46,7 +48,7 @@ fn main() -> io::Result<()> {
                 let u = (i as f32 + u_jitter) / x_px as f32;
                 let v = (j as f32 + v_jitter) / y_px as f32;
                 let my_ray = camera.get_ray(u, v);
-                color += calculate_color(&my_ray, &world);
+                color += calculate_color(&my_ray, &world, 0);
             }
             color /= samples as f32;
             color = Vec3(color.0.sqrt(), color.1.sqrt(), color.2.sqrt());
@@ -78,9 +80,19 @@ fn header(output: &mut String, width: usize, height: usize) {
     output.push_str("\n255\n");
 }
 
-fn calculate_color(ray: &Ray, world: &Hittable) -> Vec3 {
+fn calculate_color<T> (ray: &Ray, world: &Hittable<T>, depth: usize) -> Vec3 
+where T: Material {
     if let Some(hit_record) = world.hit(&ray, 0.001, f32::MAX) {
-        return shade(world, hit_record);
+        if depth < 50 {
+            if let Some(result) = hit_record.material.scatter(ray, hit_record) {
+                return result.attenuation * calculate_color(
+                &result.scattered_direction, world, depth + 1);
+            } else {
+                return Vec3(0.0, 0.0, 0.0);
+            }
+        } else {
+            return Vec3(0.0, 0.0, 0.0);
+        }
     }
     linear_blend(ray)
 }
@@ -91,18 +103,11 @@ fn linear_blend(ray: &Ray) -> Vec3 {
     Vec3(1.0, 1.0, 1.0) * (1.0 - t) + Vec3(0.5, 0.7, 1.0) * t
 }
 
-fn shade(world: &Hittable, hit_record: HitRecord) -> Vec3 {
-    let target = &hit_record.point + &hit_record.normal + random_in_unit_sphere();
-
-    0.5 * calculate_color(&Ray::new(hit_record.point.clone(), target - hit_record.point), world )
+/*
+fn shade<T> (ray: &Ray, world: &Hittable<T>, hit_record: HitRecord<T>) -> Option<ScatterResult> 
+where T: Material {
+    if depth < 50  &&let Some(result) = hit_record.material.scatter(ray, hit_record) {
+        re
+    }
 }
-
-fn random_in_unit_sphere() -> Vec3 {
-    let mut rng = rand::thread_rng();
-    let mut point: Vec3;
-    while { 
-        point = 2.0 * Vec3(rng.gen(), rng.gen(), rng.gen()) - Vec3(1.0, 1.0, 1.0);
-        point.squared_length() >= 1.0
-    }{}
-    point
-}
+*/
