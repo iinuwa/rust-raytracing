@@ -104,6 +104,7 @@ impl Lambertian {
 }
 
 impl Material for Lambertian {
+    #[allow(unused_variables)]
     fn scatter<T: Material> (&self, ray: &Ray, hit_record: HitRecord<T>) -> Option<ScatterResult> {
         let target = &hit_record.point + &hit_record.normal + random_in_unit_sphere();
         let scattered = Ray::new(

@@ -4,7 +4,7 @@ mod ray;
 mod vec3;
 
 use camera::Camera;
-use objects::{HitRecord, Hittable, HittableList, Sphere, Lambertian, Material, ScatterResult};
+use objects::{Hittable, HittableList, Sphere, Lambertian, Material};
 use rand::prelude::*;
 use ray::Ray;
 use std::f32;
@@ -102,12 +102,3 @@ fn linear_blend(ray: &Ray) -> Vec3 {
     let t = 0.5 * (unit_direction.y() + 1.0);
     Vec3(1.0, 1.0, 1.0) * (1.0 - t) + Vec3(0.5, 0.7, 1.0) * t
 }
-
-/*
-fn shade<T> (ray: &Ray, world: &Hittable<T>, hit_record: HitRecord<T>) -> Option<ScatterResult> 
-where T: Material {
-    if depth < 50  &&let Some(result) = hit_record.material.scatter(ray, hit_record) {
-        re
-    }
-}
-*/
