@@ -2,29 +2,24 @@ use crate::ray::Ray;
 use crate::vec3::{Vec3, Vector};
 use rand::prelude::*;
 
-pub struct HitRecord<'a, T>
-where
-    T: Material {
+pub struct HitRecord<'a, T> {
     pub distance: f32,
     pub point: Vec3,
     pub normal: Vec3,
-    pub material: &'a T
+    pub material: &'a Material<T>,
 }
 
-pub trait Hittable<T> where T: Material {
+pub trait Hittable<T> {
     fn hit(&self, ray: &Ray, distance_min: f32, distance_max: f32) -> Option<HitRecord<T>>;
 }
 
-pub struct Sphere<T> 
-where
-    T: Material,
-     {
+pub struct Sphere<'a, T> {
     pub center: Vec3,
     pub radius: f32,
-    pub material: T,
+    pub material: &'a Material<T>,
 }
 
-impl <T> Hittable<T> for Sphere<T> where T: Material, {
+impl<'a, T> Hittable<T> for Sphere<'a, T> {
     fn hit(&self, ray: &Ray, distance_min: f32, distance_max: f32) -> Option<HitRecord<T>> {
         let origin_offset = ray.origin() - &self.center;
         let a = Vec3::dot(ray.direction(), ray.direction());
@@ -39,7 +34,7 @@ impl <T> Hittable<T> for Sphere<T> where T: Material, {
                     distance,
                     point: ray.point_at(distance),
                     normal: (ray.point_at(distance) - &self.center) / self.radius,
-                    material: &self.material,
+                    material: self.material,
                 };
                 return Some(hit_record);
             }
@@ -58,7 +53,7 @@ impl<'a, T> HittableList<'a, T> {
     }
 }
 
-impl <T> Hittable<T> for HittableList<'_, T> where T: Material {
+impl<T> Hittable<T> for HittableList<'_, T> {
     fn hit(&self, ray: &Ray, distance_min: f32, distance_max: f32) -> Option<HitRecord<T>> {
         let mut result = None;
         let mut closest_so_far = distance_max;
@@ -72,9 +67,8 @@ impl <T> Hittable<T> for HittableList<'_, T> where T: Material {
     }
 }
 
-pub trait Material {
-    fn scatter<T> (&self, ray: &Ray, hit_record: HitRecord<T>) -> Option<ScatterResult>
-    where T: Material;
+pub trait Material<T> {
+    fn scatter(&self, ray: &Ray, hit_record: HitRecord<T>) -> Option<ScatterResult>;
 }
 
 pub struct ScatterResult {
@@ -83,8 +77,8 @@ pub struct ScatterResult {
 }
 
 trait Reflect {
-    fn reflect (vector: &Vec3, unit_vector: &Vec3) -> Vec3 {
-       vector - &(2.0 * Vec3::dot(vector, unit_vector) * unit_vector)
+    fn reflect(vector: &Vec3, unit_vector: &Vec3) -> Vec3 {
+        vector - &(2.0 * Vec3::dot(vector, unit_vector) * unit_vector)
     }
 }
 
@@ -103,23 +97,20 @@ impl Lambertian {
     }
 }
 
-impl Material for Lambertian {
+impl<T> Material<T> for Lambertian {
     #[allow(unused_variables)]
-    fn scatter<T: Material> (&self, ray: &Ray, hit_record: HitRecord<T>) -> Option<ScatterResult> {
+    fn scatter(&self, ray: &Ray, hit_record: HitRecord<T>) -> Option<ScatterResult> {
         let target = &hit_record.point + &hit_record.normal + random_in_unit_sphere();
-        let scattered = Ray::new(
-            hit_record.point.clone(),
-            target - hit_record.point,
-        );
+        let scattered = Ray::new(hit_record.point.clone(), target - hit_record.point);
         Some(ScatterResult {
             scattered_direction: scattered,
-            attenuation: self.albedo.clone()
+            attenuation: self.albedo.clone(),
         })
     }
 }
 
-struct Metal {
-    albedo: Vec3
+pub struct Metal {
+    albedo: Vec3,
 }
 
 impl Metal {
@@ -130,12 +121,15 @@ impl Metal {
 
 impl Reflect for Metal {}
 
-impl Material for Metal {
-    fn scatter<T: Material> (&self, ray: &Ray, hit_record: HitRecord<T>) -> Option<ScatterResult> {
+impl<T> Material<T> for Metal {
+    fn scatter(&self, ray: &Ray, hit_record: HitRecord<T>) -> Option<ScatterResult> {
         let reflected = Self::reflect(&Vec3::unit_vector(ray.direction()), &hit_record.normal);
-        let scattered = Ray::new( hit_record.point, reflected,);
+        let scattered = Ray::new(hit_record.point, reflected);
         if Vec3::dot(scattered.direction(), &hit_record.normal) > 0.0 {
-            return Some(ScatterResult{ scattered_direction: scattered, attenuation: self.albedo.clone() });
+            return Some(ScatterResult {
+                scattered_direction: scattered,
+                attenuation: self.albedo.clone(),
+            });
         }
         None
     }
@@ -144,9 +138,9 @@ impl Material for Metal {
 fn random_in_unit_sphere() -> Vec3 {
     let mut rng = rand::thread_rng();
     let mut point: Vec3;
-    while { 
+    while {
         point = 2.0 * Vec3(rng.gen(), rng.gen(), rng.gen()) - Vec3(1.0, 1.0, 1.0);
         point.squared_length() >= 1.0
-    }{}
+    } {}
     point
 }

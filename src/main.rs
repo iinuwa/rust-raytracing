@@ -4,7 +4,7 @@ mod ray;
 mod vec3;
 
 use camera::Camera;
-use objects::{Hittable, HittableList, Sphere, Lambertian, Material};
+use objects::{Hittable, HittableList, Lambertian, Metal, Sphere};
 use rand::prelude::*;
 use ray::Ray;
 use std::f32;
@@ -15,25 +15,35 @@ use std::io::BufWriter;
 use vec3::{Color, Vec3, Vector};
 
 fn main() -> io::Result<()> {
-    let x_px = 200;
-    let y_px = 100;
+    let x_px = 1024;
+    let y_px = 512;
     let samples = 100;
     let f = File::create("foo.ppm")?;
     let mut output = String::new();
 
     let camera = Camera::new();
-    let sphere1 = Sphere {
+    // TODO: Why does this need a type annotation but not the rest?
+    let sphere1: Sphere<Lambertian> = Sphere {
         center: Vec3(0.0, 0.0, -1.0),
         radius: 0.5,
-        material: Lambertian::new(Vec3(0.0, 0.0, 0.0)),
+        material: &Lambertian::new(Vec3(0.8, 0.3, 0.3)),
     };
     let sphere2 = Sphere {
         center: Vec3(0.0, -100.5, -1.0),
         radius: 100.0,
-        material: Lambertian::new(Vec3(0.0, 0.0, 0.0)),
+        material: &Lambertian::new(Vec3(0.8, 0.8, 0.0)),
     };
-
-    let world = HittableList::new(vec![&sphere1, &sphere2]);
+    let sphere3 = Sphere {
+        center: Vec3(1.0, 0.0, -1.0),
+        radius: 0.5,
+        material: &Metal::new(Vec3(0.8, 0.6, 0.2)),
+    };
+    let sphere4 = Sphere {
+        center: Vec3(-1.0, 0.0, -1.0),
+        radius: 0.5,
+        material: &Metal::new(Vec3(0.8, 0.8, 0.8)),
+    };
+    let world = HittableList::new(vec![&sphere1, &sphere2, &sphere3, &sphere4]);
 
     //Header
     header(&mut output, x_px, y_px);
@@ -80,18 +90,15 @@ fn header(output: &mut String, width: usize, height: usize) {
     output.push_str("\n255\n");
 }
 
-fn calculate_color<T> (ray: &Ray, world: &Hittable<T>, depth: usize) -> Vec3 
-where T: Material {
+fn calculate_color<T>(ray: &Ray, world: &Hittable<T>, depth: usize) -> Vec3 {
     if let Some(hit_record) = world.hit(&ray, 0.001, f32::MAX) {
         if depth < 50 {
             if let Some(result) = hit_record.material.scatter(ray, hit_record) {
-                return result.attenuation * calculate_color(
-                &result.scattered_direction, world, depth + 1);
-            } else {
-                return Vec3(0.0, 0.0, 0.0);
+                return result.attenuation
+                    * calculate_color(&result.scattered_direction, world, depth + 1);
             }
         } else {
-            return Vec3(0.0, 0.0, 0.0);
+            return Vec3(0.0, 255.0, 0.0);
         }
     }
     linear_blend(ray)
