@@ -15,8 +15,8 @@ use std::io::BufWriter;
 use vec3::{Color, Vec3, Vector};
 
 fn main() -> io::Result<()> {
-    let x_px = 1024;
-    let y_px = 512;
+    let x_px = 200;
+    let y_px = 100;
     let samples = 100;
     let f = File::create("foo.ppm")?;
     let mut output = String::new();
@@ -36,12 +36,12 @@ fn main() -> io::Result<()> {
     let sphere3 = Sphere {
         center: Vec3(1.0, 0.0, -1.0),
         radius: 0.5,
-        material: &Metal::new(Vec3(0.8, 0.6, 0.2)),
+        material: &Metal::new(Vec3(0.8, 0.6, 0.2), 0.3),
     };
     let sphere4 = Sphere {
         center: Vec3(-1.0, 0.0, -1.0),
         radius: 0.5,
-        material: &Metal::new(Vec3(0.8, 0.8, 0.8)),
+        material: &Metal::new(Vec3(0.8, 0.8, 0.8), 0.0),
     };
     let world = HittableList::new(vec![&sphere1, &sphere2, &sphere3, &sphere4]);
 

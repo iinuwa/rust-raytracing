@@ -111,11 +111,16 @@ impl<T> Material<T> for Lambertian {
 
 pub struct Metal {
     albedo: Vec3,
+    fuzziness: f32,
 }
 
 impl Metal {
-    pub fn new(albedo: Vec3) -> Self {
-        Metal { albedo }
+    pub fn new(albedo: Vec3, fuzziness: f32) -> Self {
+        let f = if fuzziness < 1.0 { fuzziness } else { 1.0 };
+        Metal {
+            albedo,
+            fuzziness: f,
+        }
     }
 }
 
@@ -124,7 +129,10 @@ impl Reflect for Metal {}
 impl<T> Material<T> for Metal {
     fn scatter(&self, ray: &Ray, hit_record: HitRecord<T>) -> Option<ScatterResult> {
         let reflected = Self::reflect(&Vec3::unit_vector(ray.direction()), &hit_record.normal);
-        let scattered = Ray::new(hit_record.point, reflected);
+        let scattered = Ray::new(
+            hit_record.point,
+            reflected + self.fuzziness * random_in_unit_sphere(),
+        );
         if Vec3::dot(scattered.direction(), &hit_record.normal) > 0.0 {
             return Some(ScatterResult {
                 scattered_direction: scattered,
@@ -133,6 +141,18 @@ impl<T> Material<T> for Metal {
         }
         None
     }
+}
+
+fn refract(vector: &Vec3, vector2: &Vec3, refractive_index: f32) -> Option<Vec3> {
+    let unit_vector = vector.unit_vector();
+    let dt = Vec3::dot(&unit_vector, vector2);
+    let discriminant = 1.0 - refractive_index.powi(2) * (1.0 - dt.powi(2));
+    if discriminant > 0.0 {
+        let refracted =
+            refractive_index * (unit_vector - dt * vector2) - discriminant.sqrt() * vector2;
+        return Some(refracted);
+    }
+    None
 }
 
 fn random_in_unit_sphere() -> Vec3 {
