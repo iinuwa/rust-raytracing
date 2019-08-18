@@ -4,7 +4,7 @@ mod ray;
 mod vec3;
 
 use camera::Camera;
-use objects::{Hittable, HittableList, Lambertian, Metal, Sphere};
+use objects::{Dielectric, Hittable, HittableList, Lambertian, Metal, Sphere};
 use rand::prelude::*;
 use ray::Ray;
 use std::f32;
@@ -15,8 +15,8 @@ use std::io::BufWriter;
 use vec3::{Color, Vec3, Vector};
 
 fn main() -> io::Result<()> {
-    let x_px = 200;
-    let y_px = 100;
+    let x_px = 1024;
+    let y_px = 512;
     let samples = 100;
     let f = File::create("foo.ppm")?;
     let mut output = String::new();
@@ -41,7 +41,7 @@ fn main() -> io::Result<()> {
     let sphere4 = Sphere {
         center: Vec3(-1.0, 0.0, -1.0),
         radius: 0.5,
-        material: &Metal::new(Vec3(0.8, 0.8, 0.8), 0.0),
+        material: &Dielectric::new(1.5),
     };
     let world = HittableList::new(vec![&sphere1, &sphere2, &sphere3, &sphere4]);
 
@@ -90,7 +90,7 @@ fn header(output: &mut String, width: usize, height: usize) {
     output.push_str("\n255\n");
 }
 
-fn calculate_color<T>(ray: &Ray, world: &Hittable<T>, depth: usize) -> Vec3 {
+fn calculate_color<T>(ray: &Ray, world: &dyn Hittable<T>, depth: usize) -> Vec3 {
     if let Some(hit_record) = world.hit(&ray, 0.001, f32::MAX) {
         if depth < 50 {
             if let Some(result) = hit_record.material.scatter(ray, hit_record) {
