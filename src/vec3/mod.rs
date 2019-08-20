@@ -36,6 +36,7 @@ pub trait Vector<T> {
     fn unit_vector(&self) -> Self;
     fn dot(v1: &Vec3, v2: &Vec3) -> f32;
     fn squared_length(&self) -> f32;
+    fn cross(v1: &Vec3, v2: &Vec3) -> Vec3;
 }
 
 impl Vector<f32> for Vec3 {
@@ -67,6 +68,14 @@ impl Vector<f32> for Vec3 {
 
     fn squared_length(&self) -> f32 {
         Self::dot(&self, &self)
+    }
+
+    fn cross(v1: &Vec3, v2: &Vec3) -> Vec3 {
+        Vec3(
+            v1.1 * v2.2 - v1.2 * v2.1,
+            -(v1.0 * v2.2 - v1.2 * v2.0),
+            v1.0 * v2.1 - v1.1 * v2.0,
+        )
     }
 }
 

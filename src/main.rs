@@ -23,7 +23,13 @@ fn main() -> io::Result<()> {
     let f = File::create("foo.ppm")?;
     let mut output = String::new();
 
-    let camera = Camera::new();
+    let camera = Camera::new(
+        Vec3(-2.0, 2.0, 1.0),
+        Vec3(0.0, 0.0, -1.0),
+        Vec3(0.0, 1.0, 0.0),
+        180.0,
+        x_px as f32 / y_px as f32,
+    );
     // TODO: Why does this need a type annotation but not the rest?
     let sphere1: Sphere<Lambertian> = Sphere {
         center: Vec3(0.0, 0.0, -1.0),
