@@ -45,7 +45,12 @@ fn main() -> io::Result<()> {
         radius: 0.5,
         material: &Dielectric::new(1.5),
     };
-    let world = HittableList::new(vec![&sphere1, &sphere2, &sphere3, &sphere4]);
+    let sphere5 = Sphere {
+        center: Vec3(-1.0, 0.0, -1.0),
+        radius: -0.45,
+        material: &Dielectric::new(1.5),
+    };
+    let world = HittableList::new(vec![&sphere1, &sphere2, &sphere3, &sphere4, &sphere5]);
 
     //Header
     header(&mut output, x_px, y_px);

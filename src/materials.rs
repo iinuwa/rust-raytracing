@@ -78,7 +78,7 @@ trait Refract {
     fn refract(vector: &Vec3, vector2: &Vec3, refractive_index: f32) -> Option<Vec3> {
         let unit_vector = vector.unit_vector();
         let dt = Vec3::dot(&unit_vector, vector2);
-        let discriminant = 1.0 - refractive_index.powi(2) * (1.0 - dt.powi(2));
+        let discriminant = 1.0 - refractive_index * refractive_index * (1.0 - dt * dt);
         if discriminant > 0.0 {
             let refracted =
                 refractive_index * (unit_vector - dt * vector2) - discriminant.sqrt() * vector2;
@@ -96,6 +96,12 @@ impl Dielectric {
     pub fn new(refractive_index: f32) -> Self {
         Self { refractive_index }
     }
+
+    fn schlick(cosine: f32, refractive_index: f32) -> f32 {
+        let mut r0 = (1.0 - refractive_index) / (1.0 + refractive_index);
+        r0 = r0 * r0;
+        r0 + (1.0 - r0) * (1.0 - cosine).powi(5)
+    }
 }
 
 impl Refract for Dielectric {}
@@ -103,25 +109,39 @@ impl Reflect for Dielectric {}
 impl<T> Material<T> for Dielectric {
     fn scatter(&self, ray: &Ray, hit_record: HitRecord<T>) -> Option<ScatterResult> {
         let outward_normal: Vec3;
-        let reflected = Self::reflect(ray.direction(), &hit_record.normal);
         let refractive_index: f32;
+        let mut cosine: f32;
         if Vec3::dot(ray.direction(), &hit_record.normal) > 0.0 {
-            outward_normal = -hit_record.normal;
+            outward_normal = -hit_record.normal.clone();
             refractive_index = self.refractive_index;
+            // cosine = self.refractive_index * -Vec3::dot(ray.direction(), &hit_record.normal)
+            //     / ray.direction().length();
+            cosine = Vec3::dot(ray.direction(), &hit_record.normal) / ray.direction().length();
+            cosine = 1.0 - self.refractive_index * self.refractive_index * (1.0 - cosine * cosine);
         } else {
-            outward_normal = hit_record.normal;
+            outward_normal = hit_record.normal.clone();
             refractive_index = 1.0 / self.refractive_index;
+            cosine = -Vec3::dot(ray.direction(), &hit_record.normal) / ray.direction().length();
         }
 
-        let attenuation = Vec3(1.0, 1.0, 0.0);
-        if let Some(refracted) = Self::refract(ray.direction(), &outward_normal, refractive_index) {
+        let mut reflect_probability = 1.0;
+        let refracted = Self::refract(ray.direction(), &outward_normal, refractive_index);
+        if refracted.is_some() {
+            reflect_probability = Self::schlick(cosine, refractive_index);
+        }
+
+        let attenuation = Vec3(1.0, 1.0, 1.0);
+        let mut rng = rand::thread_rng();
+        let random_num: f32 = rng.gen();
+        if random_num < reflect_probability {
+            let reflected = Self::reflect(ray.direction(), &hit_record.normal);
             return Some(ScatterResult {
-                scattered_direction: Ray::new(hit_record.point, refracted),
+                scattered_direction: Ray::new(hit_record.point, reflected),
                 attenuation,
             });
         } else {
             return Some(ScatterResult {
-                scattered_direction: Ray::new(hit_record.point, reflected),
+                scattered_direction: Ray::new(hit_record.point, refracted.unwrap()),
                 attenuation,
             });
         }
