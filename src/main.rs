@@ -5,10 +5,11 @@ mod ray;
 mod vec3;
 
 use camera::Camera;
-use materials::{Dielectric, Lambertian, Metal};
+use materials::{Dielectric, Lambertian, Material, Metal};
 use objects::{Hittable, HittableList, Sphere};
 use rand::prelude::*;
 use ray::Ray;
+use std::cmp::Ordering;
 use std::f32;
 use std::fs::File;
 use std::io;
@@ -127,4 +128,55 @@ fn linear_blend(ray: &Ray) -> Vec3 {
     let unit_direction = &ray.direction().unit_vector();
     let t = 0.5 * (unit_direction.y() + 1.0);
     Vec3(1.0, 1.0, 1.0) * (1.0 - t) + Vec3(0.5, 0.7, 1.0) * t
+}
+
+fn random_scene<T>(world: &mut Vec<&Sphere<&dyn Material<T>>>) {
+    let number_of_spheres = 500;
+    //let world = Vec::with_capacity(number_of_spheres);
+    let mut rng = rand::thread_rng();
+    for sphere in world.iter() {
+        for a in -11..11 {
+            for b in -11..11 {
+                let material_choice: f32 = rng.gen();
+                let x_rand: f32 = rng.gen();
+                let z_rand: f32 = rng.gen();
+                let center = Vec3(a as f32 + 0.9 * x_rand, 0.2, b as f32 + 0.9 * z_rand);
+                if (center - Vec3(4.0, 0.2, 0.0)).length() > 0.9 {
+                    if material_choice < 0.8 {
+                        sphere = &Sphere {
+                            // diffuse,
+                            center,
+                            radius: 0.2,
+                            material: &Lambertian::new(Vec3(
+                                rng.gen() * rng.gen(),
+                                rng.gen() * rng.gen(),
+                                rng.gen() * rng.gen(),
+                            )),
+                        };
+                    } else if material_choice < 0.95 {
+                        // metal
+                        sphere = &Sphere {
+                            center,
+                            radius: 0.2,
+                            material: &Metal::new(
+                                Vec3(
+                                    0.5 * (1.0 + rng.gen()),
+                                    0.5 * (1.0 + rng.gen()),
+                                    0.5 * (1.0 * rng.gen()),
+                                ),
+                                0.5 * rng.gen(),
+                            ),
+                        }
+                    } else {
+                        // glass
+                        sphere = &Sphere {
+                            center,
+                            radius: 0.2,
+                            material: &Dielectric::new(1.5),
+                        };
+                    }
+                }
+            }
+        }
+    }
 }
