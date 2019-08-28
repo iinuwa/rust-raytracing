@@ -3,8 +3,8 @@ use crate::ray::Ray;
 use crate::vec3::{Vec3, Vector};
 use rand::prelude::*;
 
-pub trait Material<T> {
-    fn scatter(&self, ray: &Ray, hit_record: HitRecord<T>) -> Option<ScatterResult>;
+pub trait Material {
+    fn scatter(&self, ray: &Ray, hit_record: &HitRecord) -> Option<ScatterResult>;
 }
 
 trait Reflect {
@@ -13,6 +13,7 @@ trait Reflect {
     }
 }
 
+#[derive(Copy)]
 pub struct Lambertian {
     /*
      * Albedo is the measure of the diffuse reflection of solar radiation out of the
@@ -28,23 +29,35 @@ impl Lambertian {
     }
 }
 
-impl<T> Material<T> for Lambertian {
+impl Clone for Lambertian {
+    fn clone(&self) -> Self {
+        Lambertian { albedo: self.albedo }
+    }
+}
+
+impl Material for Lambertian {
     #[allow(unused_variables)]
-    fn scatter(&self, ray: &Ray, hit_record: HitRecord<T>) -> Option<ScatterResult> {
-        let target = &hit_record.point + &hit_record.normal + random_in_unit_sphere();
-        let scattered = Ray::new(hit_record.point.clone(), target - hit_record.point);
+    fn scatter(&self, ray: &Ray, hit_record: &HitRecord) -> Option<ScatterResult> {
+        let target = hit_record.point + hit_record.normal + random_in_unit_sphere();
+        let scattered = Ray::new(hit_record.point, target - hit_record.point);
         Some(ScatterResult {
             scattered_direction: scattered,
-            attenuation: self.albedo.clone(),
+            attenuation: self.albedo,
         })
     }
 }
 
+#[derive(Copy)]
 pub struct Metal {
     albedo: Vec3,
     fuzziness: f32,
 }
 
+impl Clone for Metal {
+    fn clone(&self) -> Self {
+        Metal {albedo: self.albedo, fuzziness: self.fuzziness}
+    }
+}
 impl Metal {
     pub fn new(albedo: Vec3, fuzziness: f32) -> Self {
         let f = if fuzziness < 1.0 { fuzziness } else { 1.0 };
@@ -57,8 +70,8 @@ impl Metal {
 
 impl Reflect for Metal {}
 
-impl<T> Material<T> for Metal {
-    fn scatter(&self, ray: &Ray, hit_record: HitRecord<T>) -> Option<ScatterResult> {
+impl Material for Metal {
+    fn scatter(&self, ray: &Ray, hit_record: &HitRecord) -> Option<ScatterResult> {
         let reflected = Self::reflect(&Vec3::unit_vector(ray.direction()), &hit_record.normal);
         let scattered = Ray::new(
             hit_record.point,
@@ -67,7 +80,7 @@ impl<T> Material<T> for Metal {
         if Vec3::dot(scattered.direction(), &hit_record.normal) > 0.0 {
             return Some(ScatterResult {
                 scattered_direction: scattered,
-                attenuation: self.albedo.clone(),
+                attenuation: self.albedo,
             });
         }
         None
@@ -88,8 +101,15 @@ trait Refract {
     }
 }
 
+#[derive(Copy)]
 pub struct Dielectric {
     refractive_index: f32,
+}
+
+impl Clone for Dielectric {
+    fn clone(&self) -> Self {
+        Dielectric { refractive_index: self.refractive_index }
+    }
 }
 
 impl Dielectric {
@@ -106,20 +126,20 @@ impl Dielectric {
 
 impl Refract for Dielectric {}
 impl Reflect for Dielectric {}
-impl<T> Material<T> for Dielectric {
-    fn scatter(&self, ray: &Ray, hit_record: HitRecord<T>) -> Option<ScatterResult> {
+impl Material for Dielectric {
+    fn scatter(&self, ray: &Ray, hit_record: &HitRecord) -> Option<ScatterResult> {
         let outward_normal: Vec3;
         let refractive_index: f32;
         let mut cosine: f32;
         if Vec3::dot(ray.direction(), &hit_record.normal) > 0.0 {
-            outward_normal = -hit_record.normal.clone();
+            outward_normal = -hit_record.normal;
             refractive_index = self.refractive_index;
             // cosine = self.refractive_index * -Vec3::dot(ray.direction(), &hit_record.normal)
             //     / ray.direction().length();
             cosine = Vec3::dot(ray.direction(), &hit_record.normal) / ray.direction().length();
             cosine = 1.0 - self.refractive_index * self.refractive_index * (1.0 - cosine * cosine);
         } else {
-            outward_normal = hit_record.normal.clone();
+            outward_normal = hit_record.normal;
             refractive_index = 1.0 / self.refractive_index;
             cosine = -Vec3::dot(ray.direction(), &hit_record.normal) / ray.direction().length();
         }
@@ -135,15 +155,15 @@ impl<T> Material<T> for Dielectric {
         let random_num: f32 = rng.gen();
         if random_num < reflect_probability {
             let reflected = Self::reflect(ray.direction(), &hit_record.normal);
-            return Some(ScatterResult {
+            Some(ScatterResult {
                 scattered_direction: Ray::new(hit_record.point, reflected),
                 attenuation,
-            });
+            })
         } else {
-            return Some(ScatterResult {
+            Some(ScatterResult {
                 scattered_direction: Ray::new(hit_record.point, refracted.unwrap()),
                 attenuation,
-            });
+            })
         }
     }
 }

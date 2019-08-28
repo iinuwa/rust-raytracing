@@ -16,7 +16,7 @@ impl Ray {
         &self.vector
     }
     pub fn point_at(&self, t: f32) -> Vec3 {
-        let vector = t * &self.vector;
-        &self.point + &vector
+        let vector = t * self.vector;
+        self.point + vector
     }
 }

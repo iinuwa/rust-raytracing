@@ -1,6 +1,7 @@
 mod tests;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
+#[derive(Copy)]
 pub struct Vec3(pub f32, pub f32, pub f32);
 pub trait Color {
     fn r(&self) -> u8;
@@ -58,7 +59,7 @@ impl Vector<f32> for Vec3 {
 
     fn unit_vector(&self) -> Self {
         let length = self.length();
-        self.clone() / length
+        *self / length
     }
 
     fn dot(v1: &Vec3, v2: &Vec3) -> f32 {

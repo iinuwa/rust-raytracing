@@ -2,25 +2,27 @@ use crate::materials::Material;
 use crate::ray::Ray;
 use crate::vec3::{Vec3, Vector};
 
-pub struct HitRecord<'a, T> {
+pub struct HitRecord {
     pub distance: f32,
     pub point: Vec3,
     pub normal: Vec3,
-    pub material: &'a dyn Material<T>,
+    pub material: Box<dyn Material>,
 }
 
-pub trait Hittable<T> {
-    fn hit(&self, ray: &Ray, distance_min: f32, distance_max: f32) -> Option<HitRecord<T>>;
+pub trait Hittable {
+    fn hit(&self, ray: &Ray, distance_min: f32, distance_max: f32) -> Option<HitRecord>;
 }
 
-pub struct Sphere<'a, T> {
+pub struct Sphere<T>
+where T: Material + Copy {
     pub center: Vec3,
     pub radius: f32,
-    pub material: &'a dyn Material<T>,
+    pub material: Box<T>,
 }
 
-impl<'a, T> Hittable<T> for Sphere<'a, T> {
-    fn hit(&self, ray: &Ray, distance_min: f32, distance_max: f32) -> Option<HitRecord<T>> {
+impl <T: 'static> Hittable for Sphere<T> 
+where T: Material + Copy {
+    fn hit(&self, ray: &Ray, distance_min: f32, distance_max: f32) -> Option<HitRecord> {
         let origin_offset = ray.origin() - &self.center;
         let a = Vec3::dot(ray.direction(), ray.direction());
         let b = Vec3::dot(&origin_offset, ray.direction());
@@ -33,8 +35,8 @@ impl<'a, T> Hittable<T> for Sphere<'a, T> {
                 let hit_record = HitRecord {
                     distance,
                     point: ray.point_at(distance),
-                    normal: (ray.point_at(distance) - &self.center) / self.radius,
-                    material: self.material,
+                    normal: (ray.point_at(distance) - self.center) / self.radius,
+                    material: self.material.clone(),
                 };
                 return Some(hit_record);
             }
@@ -43,18 +45,18 @@ impl<'a, T> Hittable<T> for Sphere<'a, T> {
     }
 }
 
-pub struct HittableList<'a, T> {
-    list: Vec<&'a dyn Hittable<T>>,
+pub struct HittableList {
+    list: Vec<Box<dyn Hittable>>,
 }
 
-impl<'a, T> HittableList<'a, T> {
-    pub fn new(list: Vec<&'a dyn Hittable<T>>) -> Self {
+impl HittableList {
+    pub fn new(list: Vec<Box<dyn Hittable>>) -> Self {
         HittableList { list }
     }
 }
 
-impl<T> Hittable<T> for HittableList<'_, T> {
-    fn hit(&self, ray: &Ray, distance_min: f32, distance_max: f32) -> Option<HitRecord<T>> {
+impl Hittable for HittableList {
+    fn hit(&self, ray: &Ray, distance_min: f32, distance_max: f32) -> Option<HitRecord> {
         let mut result = None;
         let mut closest_so_far = distance_max;
         for object in self.list.iter() {
